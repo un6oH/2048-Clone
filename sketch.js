@@ -1,10 +1,12 @@
+// Clone of 2048 by Gabrielle Cirulli
+
 var score, highscore, occupied;
-let gameActive, gameOver;
+var gameActive, gameIsOver;
 var animStage, animTimer;
 var data;
 
-var format;
-var settings;
+const ui = {};
+const settings = {};
 
 const cells = [[]];
 const tiles = [];
@@ -13,76 +15,82 @@ const movingTileIds = [];
 const poppingTileIds = [];
 
 function setup(){
-  createCanvas(600, 700);
+  createCanvas(windowWidth, windowHeight);
+
   colorMode(HSB, 360, 100, 100, 100);
-  format = new Format(width, height);
-  settings = new Settings();
-  
-  background(0);
+  textFont(loadFont("ARIALBD.TTF", 72));
+  setUI(width, height);
+  initSettings();
   
   gameStart();
-  loadGame();
+
+  ui.tileColours = [];
+  for (let i = 0; i < 10; i++) { ui.tileColours.push(color(60 + 30 * i, 25, 100)); }
+  for (let i = 0; i < 10; i++) { ui.tileColours.push(color(30 * i, 50, 100)); }
 }
 
 function draw() {
-  background(format.bgColour);
+  background(ui.bgColour);
   noStroke();
   
   //title
-  textFont(format.titleFont);
-  fill(format.titleColour);
+  // textFont(ui.font, ui.titleTextSize);
+  textSize(ui.titleTextSize);
+  fill(ui.titleColour);
   textAlign(CORNER);
-  text("2048", format.boardMargin + format.cellMargin - 10, format.titleFont.getSize() - 10);
+  text("2048", ui.boardMargin + ui.cellMargin - 10, ui.titleTextSize - 10);
   
   //scores
-  fill(format.cellColour);
+  fill(ui.cellColour);
   rectMode(CENTER);
-  textFont(format.scoreFont);
+  // textFont(ui.font, ui.scoreTextSize);
+  textSize(ui.scoreTextSize);
   
-  rect(format.newGameButtonPos.x, format.newGameButtonPos.y, format.newGameButtonSize.x, format.newGameButtonSize.y, format.tileFillet);
-  rect(format.scoreBoxPos.x, format.scoreBoxPos.y, format.scoreBoxSize.x, format.scoreBoxSize.y, format.tileFillet);
-  rect(format.highscoreBoxPos.x, format.highscoreBoxPos.y, format.scoreBoxSize.x, format.scoreBoxSize.y, format.tileFillet);
+  rect(ui.newGameButtonPos.x, ui.newGameButtonPos.y, ui.newGameButtonSize.x, ui.newGameButtonSize.y, ui.tileFillet);
+  rect(ui.scoreBoxPos.x, ui.scoreBoxPos.y, ui.scoreBoxSize.x, ui.scoreBoxSize.y, ui.tileFillet);
+  rect(ui.highscoreBoxPos.x, ui.highscoreBoxPos.y, ui.scoreBoxSize.x, ui.scoreBoxSize.y, ui.tileFillet);
   
+  // buttons
   fill(0);
   textAlign(CENTER);
-  text("New Game", format.newGameButtonPos.x, format.newGameButtonPos.y + 7);
-  text("Score", format.scoreBoxPos.x, format.scoreBoxPos.y - 5);
-  text(score, format.scoreBoxPos.x, format.scoreBoxPos.y + 20);
-  text("Best", format.highscoreBoxPos.x, format.highscoreBoxPos.y - 5);
-  text(highscore, format.highscoreBoxPos.x, format.highscoreBoxPos.y + 20);
-  //buttons
-  
+  text("New Game", ui.newGameButtonPos.x, ui.newGameButtonPos.y + 7);
+  text("Score", ui.scoreBoxPos.x, ui.scoreBoxPos.y - 5);
+  text(score, ui.scoreBoxPos.x, ui.scoreBoxPos.y + 20);
+  text("Best", ui.highscoreBoxPos.x, ui.highscoreBoxPos.y - 5);
+  text(highscore, ui.highscoreBoxPos.x, ui.highscoreBoxPos.y + 20);
   
   //board
-  pushMatrix();
-  translate(format.boardMargin, height - format.boardW - format.boardMargin);
+  push();
+  translate(ui.boardMargin, height - ui.boardW - ui.boardMargin);
   textAlign(CENTER);
   rectMode(CORNER);
   
-  fill(format.boardColour);
-  rect(0, 0, format.boardW, format.boardW, format.boardFillet);
+  fill(ui.boardColour);
+  rect(0, 0, ui.boardW, ui.boardW, ui.boardFillet);
   for (let row of cells) {
     for (let cell of row) {
       cell.display();
     }
   }
-  textFont(format.numbersFont);
+  // textFont(ui.font, ui.numbersTextSize);
+  textSize(ui.numbersTextSize);
   for (let tile of tiles) {
     if (tile.active) {
       tile.display();
     }
   }
   
-  if (gameOver) {
+  if (gameIsOver) {
     fill(0, 0, 0, 50);
-    rect(0, 0, format.boardW, format.boardW, format.boardFillet);
+    rect(0, 0, ui.boardW, ui.boardW, ui.boardFillet);
     
     fill(0, 0, 100, 100);
-    textFont(format.gameOverTextFont);
-    text("Game Over", format.boardW / 2, format.boardW / 2 - format.tileW / 5);
+    // textFont(ui.font, ui.gameOverTextSize);
+    textSize(ui.gameOverTextSize);
+    text("Game Over", ui.boardW / 2, ui.boardW / 2 - ui.tileW / 5);
   }
   
-  popMatrix();
+  pop();
   
   //animations
   if (animStage == 1) {
@@ -98,10 +106,14 @@ function draw() {
       for (let i of newTileIds) tiles[i].appear();
     } else {
       endAnim();
-      if (!gameOver) saveGame();
     }
     animTimer--;
   }
+}
+
+function windowResized() {
+  resizeCanvas(windowWidth, windowHeight)
+  setUI(width, height);
 }
 
 function gameReset() {
@@ -109,31 +121,32 @@ function gameReset() {
   spawnTile();
   spawnTile();
   data[0] = "0";
-  saveStrings(dataPath("data.txt"), data);
 }
 
 function gameStart() {
-  for (let r = 0; r < 4; r++) {
-    for (let c = 0; c < 4; c++) {
-      cells[c][r] = new Cell(c, r);
+  for (let c = 0; c < 4; c++) {
+    cells.push(new Array());
+    for (let r = 0; r < 4; r++) {
+      cells[c].push(new Cell(c, r));
     }
   }
+  
   for (let i = 0; i < 17; i++) {
-    tiles[i] = new Tile(i);
+    tiles.push(new Tile(i));
   }
   
   score = 0;
   occupied = 0;
   
-  gameOver = false;
+  gameIsOver = false;
   animStage = 2;
   animTimer = settings.tilePopFrames;
 }
 
 function gameOver() {
-  gameOver = true;
-  data[0] = "0";
-  saveStrings(dataPath("data.txt"), data);
+  gameIsOver = true;
+  cells.splice(0, 4);
+  tiles.splice(0, 17);
 }
 
 function spawnTile() {
@@ -146,13 +159,13 @@ function spawnTile() {
       }
     }
   }
-  if (emptyCells.size() == 0) return;
+  if (emptyCells.length == 0) return;
   
   let range = -20000.0 / (score + 22000.0) + 2.0;
   let random = random(range);
   let exponent = floor(random) + 1;
-  let index = emptyCells.get( floor( random( emptyCells.size() ) ) );
-  emptyCells.clear();
+  let index = emptyCells.get( floor( random( emptyCells.length ) ) );
+  emptyCells.splice(0, emptyCells.length);
   
   createTile(index.c, index.r, exponent);
   //createTile(index.c, index.r, int(random(1, 20)));
@@ -296,7 +309,7 @@ function endAnim() {
         }
       }
     }
-    if (movingTileIds.size() != 0) spawnTile();
+    if (movingTileIds.length != 0) spawnTile();
     if (occupied == 16) {
       checkLoss();
     }
@@ -305,9 +318,9 @@ function endAnim() {
     for (let i of movingTileIds) {
       tiles[i].pos.set(tiles[i].targetPos);
     }
-    movingTileIds.clear();
+    movingTileIds.splice(0, movingTileIds.length);
     for (let i of poppingTileIds) {
-      tiles[i].scaleF = format.tilePopF;
+      tiles[i].scaleF = ui.tilePopF;
     }
     
     animStage = 2;
@@ -318,8 +331,8 @@ function endAnim() {
     for (let i of newTileIds) {
       tiles[i].scaleF = 1;
     }
-    poppingTileIds.clear();
-    newTileIds.clear();
+    poppingTileIds.splice(0, poppingTileIds.length);
+    newTileIds.splice(0, newTileIds.length);
     animStage = 0;
   }
 }
@@ -349,63 +362,66 @@ function checkLoss() {
 
 function mouseClicked() {
   //spawnTile();
-  if (mouseX > format.newGameButtonPos.x - format.newGameButtonSize.x / 2 && mouseX < format.newGameButtonPos.x + format.newGameButtonSize.x  / 2 && mouseY > format.newGameButtonPos.y - format.newGameButtonSize.y / 2 && mouseY < format.newGameButtonPos.y + format.newGameButtonSize.y / 2) {
+  if (mouseX > ui.newGameButtonPos.x - ui.newGameButtonSize.x / 2 && mouseX < ui.newGameButtonPos.x + ui.newGameButtonSize.x  / 2 && mouseY > ui.newGameButtonPos.y - ui.newGameButtonSize.y / 2 && mouseY < ui.newGameButtonPos.y + ui.newGameButtonSize.y / 2) {
     gameReset();
   }
 }
 
 function keyPressed() {
-  if (!gameOver && (keyCode == UP || keyCode == DOWN || keyCode == RIGHT || keyCode == LEFT)) {
+  if (!gameIsOver && (keyCode == UP || keyCode == DOWN || keyCode == RIGHT || keyCode == LEFT)) {
     while (animStage > 0) endAnim();
     startAnim();
     calcMove(keyCode);
   }
 }
 
-class Format {
-  constructor (w_, h_) {
-    this.w = w_;
-    this.h = h_;
-    
-    this.boardW = this.w * 0.9;
-    this.boardMargin = (this.w - this.boardW) / 2;
-    this.cellMargin = this.boardW * 0.025;
-    this.tileW = (this.boardW - this.cellMargin * 5) / 4;
-    this.cellSpacing = this.cellMargin + this.tileW;
-    
-    this.newGameButtonPos = createVector(this.w - this.boardMargin - this.cellMargin - this.tileW / 2, this.boardMargin + this.tileW * 5 / 8);
-    this.newGameButtonSize = createVector(this.tileW, this.tileW / 4);
-    this.scoreBoxPos = createVector(this.w - this.boardMargin - this.cellMargin - this.tileW / 2, this.boardMargin + this.tileW /4 - 10);
-    this.highscoreBoxPos = createVector(this.w - this.boardMargin - this.cellMargin * 2 - this.tileW * 1.5, this.boardMargin + this.tileW /4 - 10);
-    this.scoreBoxSize = createVector(this.tileW, this.tileW / 2);
-    
-    this.boardFillet = this.boardMargin / 4;
-    this.tileFillet = this.boardFillet;
-    
-    this.tilePopF = (this.tileW + this.cellMargin * 2) / this.tileW;
-    
-    this.titleFont = loadFont("SansSerif.bold", this.tileW);
-    this.numbersFont = loadFont("SansSerif.bold", this.tileW / 2);
-    this.numbersFontOffset = this.tileW / 20;
-    this.scoreFont = loadFont("SansSerif.bold", 20);
-    this.gameOverTextFont = loadFont("SansSerif.bold", tileW / 2);
-    
-    this.scoreTextSize = this.scoreFont.getSize();
-
-    this.tileColours = [];
-    for (let i = 0; i < 10; i++) this.tileColours[i] = color(60 + 30 * i, 25, 100);
-    for (let i = 0; i < 10; i++) this.tileColours[i+10] = color(30 * i, 50, 100);
+function setUI(w, h) {
+  if (w / h <= 6 / 7) {
+    ui.w = w;
+    ui.h = ui.w * float(7 / 6)
+  } else {
+    ui.h = h;
+    ui.w = ui.h * float(6 / 7);
   }
+  
+  ui.boardW = ui.w * 0.9;
+  ui.boardMargin = (ui.w - ui.boardW) / 2;
+  ui.cellMargin = ui.boardW * 0.025;
+  ui.tileW = (ui.boardW - ui.cellMargin * 5) / 4;
+  ui.cellSpacing = ui.cellMargin + ui.tileW;
+  
+  ui.newGameButtonPos = createVector(ui.w - ui.boardMargin - ui.cellMargin - ui.tileW / 2, ui.boardMargin + ui.tileW * 5 / 8);
+  ui.newGameButtonSize = createVector(ui.tileW, ui.tileW / 4);
+  ui.scoreBoxPos = createVector(ui.w - ui.boardMargin - ui.cellMargin - ui.tileW / 2, ui.boardMargin + ui.tileW /4 - 10);
+  ui.highscoreBoxPos = createVector(ui.w - ui.boardMargin - ui.cellMargin * 2 - ui.tileW * 1.5, ui.boardMargin + ui.tileW /4 - 10);
+  ui.scoreBoxSize = createVector(ui.tileW, ui.tileW / 2);
+  
+  ui.boardFillet = ui.boardMargin / 4;
+  ui.tileFillet = ui.boardFillet;
+  
+  ui.tilePopF = (ui.tileW + ui.cellMargin * 2) / ui.tileW;
+  ui.tileStartF = 0.2;
+
+  ui.titleColour = color(0, 0, 100);  
+  ui.menuColour = color(0, 0, 100);
+  ui.bgColour = color(0, 0, 0);
+  ui.boardColour = color(0, 0, 50);
+  ui.cellColour = color(0, 0, 90);
+  ui.numColour = color(0);
+  
+  ui.titleTextSize = ui.tileW;
+  ui.numbersTextSize = ui.tileW / 20;
+  ui.numbersTextOffset = ui.numbersTextSize;
+  ui.scoreTextSize = ui.tileW / 6.5;
+  ui.gameOverTextSize = ui.tileW / 2
 }
 
-class Settings {
-  constructor() {
-    this.moveFrames = 10;
-    this.tilePopFrames = 5;
-    this.appearFrames = 5;
-    this.animFrames = this.moveFrames + this.tilePopFrames;
-    this.highscore = 0;
-  }
+function initSettings() {
+  settings.moveFrames = 10;
+  settings.tilePopFrames = 5;
+  settings.appearFrames = 5;
+  settings.animFrames = settings.moveFrames + settings.tilePopFrames;
+  settings.highscore = 0;
 }
 
 class Cell {
@@ -417,16 +433,12 @@ class Cell {
     this.newTileId;
     this.occupied = false;
     this.isCombining = false;
-    this.pos = createVector(format.cellMargin + (format.cellSpacing) * this.c, format.cellMargin + (format.cellSpacing) * this.r);
+    this.pos = createVector(ui.cellMargin + (ui.cellSpacing) * this.c, ui.cellMargin + (ui.cellSpacing) * this.r);
   }
   
   display() {
-    fill(format.cellColour);
-    rect(this.pos.x, this.pos.y, format.tileW, format.tileW, this.format.tileFillet);
-    //if (occupied) {
-    //  fill(0);
-    //  text(int(pow(2, exponent)), pos.x + format.tileW / 2, pos.y + format.tileW / 2 + format.numbersFont.getSize() * 0.4);
-    //}
+    fill(ui.cellColour);
+    rect(this.pos.x, this.pos.y, ui.tileW, ui.tileW, ui.tileFillet);
   }
   
   empty() {
@@ -483,11 +495,11 @@ class Tile {
   }
   
   create(c, r, exp) {
-    this.pos = createVector(format.cellMargin + (format.cellSpacing) * this.c + format.tileW / 2, format.cellMargin + (format.cellSpacing) * this.r + format.tileW / 2);
+    this.pos = createVector(ui.cellMargin + (ui.cellSpacing) * this.c + ui.tileW / 2, ui.cellMargin + (ui.cellSpacing) * this.r + ui.tileW / 2);
     this.targetPos = createVector(this.pos.x, this.pos.y);
     this.vel = createVector(0, 0);
     setExp(exp);
-    this.scaleF = format.tileStartF;
+    this.scaleF = ui.tileStartF;
     this.active = true;
   }
   
@@ -496,23 +508,23 @@ class Tile {
   }
   
   display() {
-    pushMatrix();
+    push();
     translate(this.pos.x, this.pos.y);
     scale(this.scaleF);
     
-    fill(format.tileColours[exponent-1]);
-    rect(-format.tileW / 2, -format.tileW / 2, format.tileW, format.tileW, format.tileFillet);
+    fill(ui.tileColours[exponent-1]);
+    rect(-ui.tileW / 2, -ui.tileW / 2, ui.tileW, ui.tileW, ui.tileFillet);
     
     textSize(this.textSize);
-    fill(format.numColour);
+    fill(ui.numColour);
     text(int(pow(2, this.exponent)), -2, this.textSize * 0.4);
     
-    popMatrix();
+    pop();
   }
   
   goTo(c, r) {
     print("transferring tile " + this.id + " to " + this.c + " " + this.r + ' ');
-    this.targetPos.set(cells[c][r].pos).add(format.tileW/2, format.tileW/2);
+    this.targetPos.set(cells[c][r].pos).add(ui.tileW/2, ui.tileW/2);
     this.vel.set(this.targetPos).sub(this.pos).div(settings.moveFrames);
     movingTileIds.append(this.id);
     cells[c][r].setTile(this.id);
@@ -521,15 +533,15 @@ class Tile {
   setExp(exp) {
     this.exponent = exp;
     
-    textSize = format.numbersFont.getSize();
+    textSize = ui.numbersTextSize;
     if (this.exponent > 6) {
       let log = int(log(pow(2, this.exp)) / log(10)) + 1;
-      textSize -= format.numbersFontOffset * (log - 1);
+      textSize -= ui.numbersFontOffset * (log - 1);
     }
   }
   
   appear() {
-    this.scaleF += (1 - format.tileStartF) / settings.appearFrames;
+    this.scaleF += (1 - ui.tileStartF) / settings.appearFrames;
   }
   
   move() {
@@ -537,6 +549,6 @@ class Tile {
   }
   
   pop() {
-    this.scaleF -= (format.tilePopF - 1) / settings.tilePopFrames;
+    this.scaleF -= (ui.tilePopF - 1) / settings.tilePopFrames;
   }
 }

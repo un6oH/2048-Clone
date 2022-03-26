@@ -128,7 +128,7 @@ function windowResized() {
 }
 
 function gameReset() {
-  console.log("\n<GAME RESET>")
+  // console.log("\n<GAME RESET>")
   gameStart();
   spawnTile();
   spawnTile();
@@ -185,10 +185,10 @@ function spawnTile() {
 function createTile(c, r, exp) {
   for (let tile of tiles) {
     if (!tile.active) {
-      tile.create(c, r, exp);
+      tile.activate(c, r, exp);
       cells[c][r].setTile(tile.id);
       cells[c][r].exponent = exp;
-      console.log("createTile() ");
+      // console.log("createTile() ");
       cells[c][r].update();
       occupied++;
       newTileIds.push(tile.id);
@@ -202,24 +202,24 @@ function calcMove(input) {
   let start, end, inc;
   if (input == LEFT_ARROW || input == UP_ARROW) { start = 1; end = 4; inc = 1; }
   else { start = 2; end = -1; inc = -1; }
-  console.log("gameManager::calcMove() moving ");
+  // console.log("gameManager::calcMove() moving ");
   switch (input) {
-    case LEFT_ARROW: console.log("left"); break;
-    case UP_ARROW: console.log("up"); break;
-    case RIGHT_ARROW: console.log("right"); break;
-    case DOWN_ARROW: console.log("down"); break;
+    case LEFT_ARROW: // console.log("left"); break;
+    case UP_ARROW: // console.log("up"); break;
+    case RIGHT_ARROW: // console.log("right"); break;
+    case DOWN_ARROW: // console.log("down"); break;
   }
   
   /** HORIZONTAL **/
   if (horizontal) {
     for (let r = 0; r < 4; r++) {
-      console.log("processing row "+r+' ');
+      // console.log("processing row "+r+' ');
       for (let c = start; c != end; c += inc) {
-        console.log("processing cell " + c + ' ' + r + ": ");
+        // console.log("processing cell " + c + ' ' + r + ": ");
         let cell = cells[c][r];
         
         if (!cell.occupied) {
-          console.log("empty");
+          // console.log("empty");
           continue;
         }
         
@@ -227,21 +227,21 @@ function calcMove(input) {
         let move = false;
         let exponent = cell.exponent;
         for (let i = c - inc; 0 <= i && i < 4; i -= inc) {
-          console.log("checking cell "+i+' '+r+' ');
+          // console.log("checking cell "+i+' '+r+' ');
           if (cells[i][r].occupied) {
-            console.log("occupied ");
+            // console.log("occupied ");
             if (cells[i][r].exponent == cell.exponent && !cells[i][r].isCombining) {
-              console.log("equal ");
+              // console.log("equal ");
               newIndex.c = i;
               move = true;
               exponent++;
               score += pow(2, exponent);
-              console.log("combining to exponent "+exponent+' ');
+              // console.log("combining to exponent "+exponent+' ');
               cells[newIndex.c][newIndex.r].isCombining = true;
             }
             break;
           } else {
-            console.log("empty ");
+            // console.log("empty ");
             newIndex.c = i;
             move = true;
           }
@@ -249,7 +249,7 @@ function calcMove(input) {
         if (move) {
           cells[newIndex.c][newIndex.r].exponent = exponent;
           cells[c][r].empty();
-          tiles[cell.tileId].goTo(newIndex.c, newIndex.r);
+          tiles[cell.tileId].instantMove(newIndex.c, newIndex.r);
         }
       }
     }
@@ -257,13 +257,13 @@ function calcMove(input) {
   /** VERTICAL **/
   else { 
     for (let c = 0; c < 4; c++) {
-      console.log("processing column "+c+' ');
+      // console.log("processing column "+c+' ');
       for (let r = start; r != end; r += inc) {
-        console.log("processing cell "+c+' '+r+": ");
+        // console.log("processing cell "+c+' '+r+": ");
         let cell = cells[c][r];
         
         if (!cell.occupied) {
-          console.log("empty");
+          // console.log("empty");
           continue;
         }
         
@@ -271,21 +271,21 @@ function calcMove(input) {
         let move = false;
         let exponent = cell.exponent;
         for (let i = r - inc; 0 <= i && i < 4; i -= inc) {
-          console.log("checking cell "+c+' '+i+' ');
+          // console.log("checking cell "+c+' '+i+' ');
           if (cells[c][i].occupied) {
-            console.log("occupied ");
+            // console.log("occupied ");
             if (cells[c][i].exponent == cell.exponent && !cells[c][i].isCombining) {
-              console.log("equal ");
+              // console.log("equal ");
               newIndex.r = i;
               move = true;
               exponent++;
               score += pow(2, exponent);
-              console.log("combining to exponent "+exponent+' ');
+              // console.log("combining to exponent "+exponent+' ');
               cells[newIndex.c][newIndex.r].setTile(cell.tileId);
             }
             break;
           } else {
-            console.log("empty ");
+            // console.log("empty ");
             newIndex.r = i;
             move = true;
           }
@@ -293,7 +293,7 @@ function calcMove(input) {
         if (move) {
           cells[newIndex.c][newIndex.r].exponent = exponent;
           cells[c][r].empty();
-          tiles[cell.tileId].goTo(newIndex.c, newIndex.r);
+          tiles[cell.tileId].instantMove(newIndex.c, newIndex.r);
         }
       }
     }
@@ -345,7 +345,7 @@ function endAnim() {
 }
 
 function checkLoss() {
-  console.log("checkLoss() ");
+  // console.log("checkLoss() ");
   let movesAvailable = false;
   for (let i = 0; i < 4; i++) {
     let rexp = cells[i][0].exponent, cexp = cells[0][i].exponent;
@@ -353,7 +353,7 @@ function checkLoss() {
       let crexp = cells[i][j].exponent, ccexp = cells[j][i].exponent;
       if (crexp == rexp || ccexp == cexp) {
         movesAvailable = true;
-        console.log("move available ");
+        // console.log("move available ");
         break;
       }
       rexp = crexp;
@@ -362,7 +362,7 @@ function checkLoss() {
   }
   if (!movesAvailable) {
     gameOver();
-    console.log("no moves available; game over");
+    // console.log("no moves available; game over");
   }
 }
 
@@ -448,7 +448,7 @@ class Cell {
     this.occupied = false;
     this.isCombining = false;
     this.pos = createVector(ui.cellMargin + ui.cellSpacing * this.c, ui.cellMargin + ui.cellSpacing * this.r);
-    console.log("New cell created");
+    // console.log("New cell created");
   }
   
   display() {
@@ -472,20 +472,20 @@ class Cell {
   
   update() {
     this.printId();
-    console.log("update() ");
-    console.log("exponent=" + this.exponent + ' ');
+    // console.log("update() ");
+    // console.log("exponent=" + this.exponent + ' ');
     if (this.isCombining) {
-      tiles[this.newTileId].destroy();
-      console.log("destroyed tile " + this.newTileId + ' ');
+      tiles[this.newTileId].deactivate();
+      // console.log("deactivated tile " + this.newTileId + ' ');
       poppingTileIds.push(this.tileId);
       this.isCombining = false;
     }
     tiles[this.tileId].setExp(this.exponent);
-    console.log("tileId=" + this.tileId);
+    // console.log("tileId=" + this.tileId);
   }
   
   printId() {
-    console.log("cells[" + this.c + "][" + this.r + "]::");
+    // console.log("cells[" + this.c + "][" + this.r + "]::");
   }
 }
 
@@ -506,10 +506,10 @@ class Tile {
     this.vel = createVector(0, 0);
     this.scaleF;
     this.numTextSize;
-    console.log("Tile created");
+    // console.log("Tile created");
   }
   
-  create(c, r, exp) {
+  activate(c, r, exp) {
     this.pos = createVector(ui.cellMargin + (ui.cellSpacing) * c + ui.tileW / 2, ui.cellMargin + (ui.cellSpacing) * r + ui.tileW / 2);
     this.targetPos = createVector(this.pos.x, this.pos.y);
     this.vel = createVector(0, 0);
@@ -518,7 +518,7 @@ class Tile {
     this.active = true;
   }
   
-  destroy() {
+  deactivate() {
     this.active = false;
   }
   
@@ -538,8 +538,8 @@ class Tile {
     pop();
   }
   
-  goTo(c, r) {
-    console.log("transferring tile " + this.id + " to " + this.c + " " + this.r + ' ');
+  instantMove(c, r) {
+    // console.log("transferring tile " + this.id + " to " + this.c + " " + this.r + ' ');
     this.targetPos.set(cells[c][r].pos).add(ui.tileW/2, ui.tileW/2);
     this.vel.set(this.targetPos).sub(this.pos).div(settings.moveFrames);
     movingTileIds.push(this.id);
